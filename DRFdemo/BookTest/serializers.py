@@ -2,7 +2,7 @@
 
 # 针对BookInfo模型类数据，定义一个BookInfoSerializer序列化器
 # 来对BooKinfo数据进行序列化操作
-
+'''
 from rest_framework import serializers
 
 # # 我们自己心里清楚，这个序列化器是针对BookInfo的！！！
@@ -28,17 +28,16 @@ class HeroInfoSerializer2(serializers.Serializer):
 
 
 # 定义一个针对btitle的校验函数
-def check_btitle(value):
-    # 参数value：经过前序校验之后的btitle数据
-    # 我们通过抛出ValidationError异常表示校验失败！！
-    # 返回值无
-
-    # 如果"django"字符串不再value中，表示不符合格式
-    # {"btitle": "围城"}
-    if "django" not in value:
-        # 不是一本关于django的书
-        raise serializers.ValidationError("这不是一本关于djangod的书！")
-
+# def check_btitle(value):
+#     # 参数value：经过前序校验之后的btitle数据
+#     # 我们通过抛出ValidationError异常表示校验失败！！
+#     # 返回值无
+#
+#     # 如果"django"字符串不再value中，表示不符合格式
+#     # {"btitle": "围城"}
+#     if "django" not in value:
+#         # 不是一本关于django的书
+#         raise serializers.ValidationError("这不是一本关于djangod的书！")
 
 
 
@@ -53,7 +52,7 @@ class BookInfoSerializer(serializers.Serializer):
                                    min_length=2,
 
                                    # validators约束条件指定多个针对当前字段的校验函数
-                                   validators=[check_btitle]
+                                   # validators=[check_btitle]
     )
 
 
@@ -67,7 +66,9 @@ class BookInfoSerializer(serializers.Serializer):
     # heros隐藏字段，多个从表HeroInfo对象
     # heros = serializers.PrimaryKeyRelatedField(read_only=True, many=True)
     # heros = serializers.StringRelatedField(many=True)
-    heros = HeroInfoSerializer2(many=True)
+    # heros = HeroInfoSerializer2(many=True)
+
+
 
 class HeroInfoSerializer(serializers.Serializer):
     """英雄数据序列化器"""
@@ -107,18 +108,52 @@ class HeroInfoSerializer(serializers.Serializer):
     # }
     # hbook = BookInfoSerializer()
 
+'''
+
+"""
+使用模型类序列化器
+"""
 
 
+from rest_framework import serializers
+from .models import *
+
+# serializers.Serializer ---- 自定义序列化器所继承的
+# serializers.ModelSerializer ---- 专门针对模型类数据的序列化器
 
 
+# 定义一个针对BookInfo的模型类序列化器
+class BookInfoModelSerializer(serializers.ModelSerializer):
+    # 可以通过在序列化器中手动自定映射的字段
+
+    # 对于非主键的隐藏字段
+    # heros = serializers.StringRelatedField(many=True)
+
+    # 手动定义的字段，会覆盖自动映射的字段
+    # btitle = serializers.CharField(min_length=2, max_length=20, required=True)
+
+    class Meta:
+        model = BookInfo # 声明当前序列化器操作的目标模型类
+        fields = "__all__" # 声明操作的模型类的字段为所有：把所有的字段映射到序列化器中
+        # fields = ['id', 'btitle', 'bpub_date', 'bread'] # 指定字段映射
+        # exclude = ['image'] # 除了image字段，其他的字段映射到序列化器中
+
+        # 对模型类序列化器自动构建的约束条件进行修订
+        extra_kwargs = {
+            "bread": {"min_value": 0}, # 把bread字段的min_value约束条件设置为0
+            # "required": True,
+        }
+
+        # 批量地把一些字段设置为read_only=True
+        # read_only_fields = ['id', 'bread']
 
 
+class HeroInfoModelSerializer(serializers.ModelSerializer):
+    # 外间关联字段，自动映射的类型是PrimaryKeyRelatedField
 
+    # 关联对象的主键隐藏字段不会自动映射
+    hbook_id = serializers.IntegerField()
 
-
-
-
-
-
-
-
+    class Meta:
+        model = HeroInfo
+        fields = "__all__"
